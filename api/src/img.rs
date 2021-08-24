@@ -5,10 +5,8 @@ use image::{
     GenericImageView,
     Rgb,
     Pixel,
-    io::Reader as ImageReader,
 };
 
-use std::convert::TryInto;
 
 use crate::math::*;
 use crate::data::*;
@@ -21,21 +19,22 @@ pub const GREEN: Color = Rgb::<u8>([0, 255, 0]);
 pub const BLUE: Color = Rgb::<u8>([0, 0, 255]);
 
 
-fn isolate(image: &DynamicImage, color_data: ColorData) {
+fn isolate(image: &DynamicImage, color_data: ColorData) -> DynamicImage {
 
-    let cols = [color_data.back, color_data.front, color_data.dest];
 
     let mut result = DynamicImage::new_rgb8(image.dimensions().0, image.dimensions().1);
 
     for pixel in image.pixels() {
-        for color in cols {
-            if eq_tolerance(pixel.2.to_rgb(), color, color_data.tolerance) {
+        let pixel_col = pixel.2.to_rgb();
+
+        for color in color_data.colors.iter() {
+            if eq_tolerance(pixel.2.to_rgb(), *color, color_data.tolerance) {
                 result.put_pixel(pixel.0, pixel.1, color.to_rgba());
             }
         }
     }
 
-    result.save("/home/ggsvr/dev/rust/birdeye/isolated.png").unwrap();
+    result
 }
 
 // get points from image
@@ -43,8 +42,10 @@ pub fn get_points(image: &DynamicImage, color_data: ColorData) -> PointData {
 
 
     // back, front, and destination points array
-    let mut points: [Option<Point>; 3] = [None, None, None];
-    let point_cols: [Color; 3] = [color_data.back, color_data.front, color_data.dest];
+    //let mut points: [Option<Point>; 3] = [None, None, None];
+    let points = PointData {
+        back: None, front: None, dest: None
+    };
 
     for pixel in image.pixels() {
 
@@ -54,7 +55,7 @@ pub fn get_points(image: &DynamicImage, color_data: ColorData) -> PointData {
 
         // iterate through colors, and check if corresponds to any point's color
         for i in 0..3 {
-            if eq_tolerance(pixel_col, point_cols[i], color_data.tolerance) {
+            if eq_tolerance(pixel_col, color_data.colors[i], color_data.tolerance) {
                 point_ref = Some(&mut points[i]);
             }
         }
@@ -78,9 +79,7 @@ pub fn get_points(image: &DynamicImage, color_data: ColorData) -> PointData {
     }
 
     PointData {
-        back: points[0],
-        front: points[1],
-        dest: points[2],
+        points
     }
 }
 
@@ -104,6 +103,7 @@ fn eq_tolerance(col1: Color, col2: Color, tolerance: f64) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use image::io::Reader as ImageReader;
     use super::*;
 
     #[test]
@@ -118,18 +118,40 @@ mod tests {
 
     }
 
+    const IMG_PATH: &str = "/home/ggsvr/dev/rust/birdeye/test_image.jpg";
+
+    fn setup_color() -> ColorData {
+        ColorData {
+            colors: [
+                Color::from([254, 118, 128]), // back
+                Color::from([142, 224, 140]), // front
+                Color::from([91, 122, 239]),  // dest
+            ],
+            tolerance: 0.2,
+        }
+    }
+
 
     #[test]
     fn isolate_test() {
         let img = ImageReader::open("/home/ggsvr/dev/rust/birdeye/test_image.jpg").unwrap().decode().unwrap();
 
-        let color_data = ColorData {
-            back: Color::from([29,110,108]),
-            front: Color::from([105, 58, 46]),
-            dest: Color::from([2, 42, 108]),
-            tolerance: 0.3,
-        };
+        let result = isolate(&img, setup_color());
+        result.save("/home/ggsvr/dev/rust/birdeye/isolated.png").unwrap();
+    }
 
-        isolate(&img, color_data);
+    #[test]
+    fn points_test() {
+        let img = ImageReader::open(IMG_PATH).unwrap().decode().unwrap();
+
+        let point_data = get_points(&img, setup_color());
+        let points = [point_data.points[BACK].unwrap(), point_data.points[FRONT].unwrap(), point_data.points[DEST].unwrap()];
+        println!("{:?}", points);
+
+        //let mut result = DynamicImage::new_rgb8(img.dimensions().0, img.dimensions().1);
+
+
+        //result.save("points.png").unwrap();
+
     }
 }
