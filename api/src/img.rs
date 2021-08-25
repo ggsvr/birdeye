@@ -43,20 +43,19 @@ pub fn get_points(image: &DynamicImage, color_data: ColorData) -> PointData {
 
     // back, front, and destination points array
     //let mut points: [Option<Point>; 3] = [None, None, None];
-    let points = PointData {
-        back: None, front: None, dest: None
-    };
+    let mut point_data = PointData::new();
 
     for pixel in image.pixels() {
 
         let pixel_col = pixel.2.to_rgb();
         // which point to choose based on color
-        let mut point_ref: Option<&mut Option<Point>> = None;
+        let mut point_ref: Option<&mut Pt> = None;
 
         // iterate through colors, and check if corresponds to any point's color
-        for i in 0..3 {
-            if eq_tolerance(pixel_col, color_data.colors[i], color_data.tolerance) {
-                point_ref = Some(&mut points[i]);
+
+        for (i, col) in color_data.colors.iter().enumerate() {
+            if eq_tolerance(pixel_col, *col, color_data.tolerance) {
+                point_ref = Some(&mut point_data.points[i]);
             }
         }
 
@@ -78,9 +77,7 @@ pub fn get_points(image: &DynamicImage, color_data: ColorData) -> PointData {
 
     }
 
-    PointData {
-        points
-    }
+    point_data
 }
 
 // compare colors with tolerance
@@ -118,7 +115,7 @@ mod tests {
 
     }
 
-    const IMG_PATH: &str = "/home/ggsvr/dev/rust/birdeye/test_image.jpg";
+    const IMG_PATH: &str = "/home/guilh/dev/rust/birdeye/points_img.jpg";
 
     fn setup_color() -> ColorData {
         ColorData {
@@ -134,7 +131,7 @@ mod tests {
 
     #[test]
     fn isolate_test() {
-        let img = ImageReader::open("/home/ggsvr/dev/rust/birdeye/test_image.jpg").unwrap().decode().unwrap();
+        let img = ImageReader::open(IMG_PATH).unwrap().decode().unwrap();
 
         let result = isolate(&img, setup_color());
         result.save("/home/ggsvr/dev/rust/birdeye/isolated.png").unwrap();
@@ -145,7 +142,11 @@ mod tests {
         let img = ImageReader::open(IMG_PATH).unwrap().decode().unwrap();
 
         let point_data = get_points(&img, setup_color());
-        let points = [point_data.points[BACK].unwrap(), point_data.points[FRONT].unwrap(), point_data.points[DEST].unwrap()];
+        let points = [
+            point_data.back().unwrap(),
+            point_data.front().unwrap(),
+            point_data.dest().unwrap(),
+        ];
         println!("{:?}", points);
 
         //let mut result = DynamicImage::new_rgb8(img.dimensions().0, img.dimensions().1);

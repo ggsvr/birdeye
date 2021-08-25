@@ -3,11 +3,11 @@ pub mod point;
 pub use color::*;
 pub use point::*;
 
-trait Data {
+pub trait Data {
     type Inner;
 
-    fn list(&self) -> &[Self::Inner];
-    fn list_mut(&mut self) -> &mut [Self::Inner];
+    fn list(&self) -> &[Self::Inner; 3];
+    fn list_mut(&mut self) -> &mut [Self::Inner; 3];
 
     fn back(&self) -> &Self::Inner {
         &self.list()[0]
