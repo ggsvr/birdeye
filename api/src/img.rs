@@ -7,6 +7,7 @@ use image::{
     Pixel,
 };
 
+pub use image;
 
 use crate::math::*;
 use crate::data::*;
@@ -25,7 +26,6 @@ fn isolate(image: &DynamicImage, color_data: ColorData) -> DynamicImage {
     let mut result = DynamicImage::new_rgb8(image.dimensions().0, image.dimensions().1);
 
     for pixel in image.pixels() {
-        let pixel_col = pixel.2.to_rgb();
 
         for color in color_data.colors.iter() {
             if eq_tolerance(pixel.2.to_rgb(), *color, color_data.tolerance) {
@@ -38,7 +38,7 @@ fn isolate(image: &DynamicImage, color_data: ColorData) -> DynamicImage {
 }
 
 // get points from image
-pub fn get_points(image: &DynamicImage, color_data: ColorData) -> PointData {
+pub fn get_points(image: &DynamicImage, color_data: &ColorData) -> PointData {
 
 
     // back, front, and destination points array
@@ -83,7 +83,7 @@ pub fn get_points(image: &DynamicImage, color_data: ColorData) -> PointData {
 // compare colors with tolerance
 fn eq_tolerance(col1: Color, col2: Color, tolerance: f64) -> bool {
 
-    // tolerance shouls always be between 0 and 1; Like 0% and 100% tolerance
+    // tolerance should always be between 0 and 1; Like 0% and 100% tolerance
     let tolerance = tolerance.clamp(0., 1.);
 
     // iterate through components, checking if first is in the second's range of tolerance
@@ -115,17 +115,15 @@ mod tests {
 
     }
 
-    const IMG_PATH: &str = "/home/guilh/dev/rust/birdeye/points_img.jpg";
+    const IMG_PATH: &str = "../color_img.jpg";
 
     fn setup_color() -> ColorData {
-        ColorData {
-            colors: [
-                Color::from([254, 118, 128]), // back
-                Color::from([142, 224, 140]), // front
-                Color::from([91, 122, 239]),  // dest
-            ],
-            tolerance: 0.2,
-        }
+        ColorData::new(
+            Color::from([0x00,0x11,0x69]),
+            Color::from([0x02,0x4B,0x2D]),
+            Color::from([0x78,0x09,0x08]),
+            0.15
+        )
     }
 
 
@@ -139,9 +137,12 @@ mod tests {
 
     #[test]
     fn points_test() {
+        use crate::math::Point;
+
+        let col = setup_color();
         let img = ImageReader::open(IMG_PATH).unwrap().decode().unwrap();
 
-        let point_data = get_points(&img, setup_color());
+        let point_data = get_points(&img, &col);
         let points = [
             point_data.back().unwrap(),
             point_data.front().unwrap(),
@@ -149,10 +150,24 @@ mod tests {
         ];
         println!("{:?}", points);
 
-        //let mut result = DynamicImage::new_rgb8(img.dimensions().0, img.dimensions().1);
+        let mut result = DynamicImage::new_rgb8(img.dimensions().0, img.dimensions().1);
+
+        for (x, y, _) in img.pixels() {
+
+            let pixel_pt = Point::new(x.into(), y.into());
+
+            for (index, point) in points.iter().enumerate() {
+                if point.distance2(pixel_pt) < 50. {
+                    result.put_pixel(x, y, col.colors[index].to_rgba());
+                }
+
+            }
+        }
 
 
-        //result.save("points.png").unwrap();
+        result.save("points.png").unwrap();
+
+
 
     }
 }

@@ -10,6 +10,19 @@ pub struct ColorData {
     pub tolerance: f64,
 }
 
+impl ColorData {
+    pub fn new(back: Color, front: Color, dest: Color, tolerance: f64) -> Self {
+        Self {
+            colors: [
+                back,
+                front,
+                dest
+            ],
+            tolerance
+        }
+    }
+}
+
 impl Data for ColorData {
     type Inner = Color;
 

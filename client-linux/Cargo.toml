@@ -7,3 +7,4 @@ edition = "2018"
 
 [dependencies]
 rscam = "0.5"
+api = { path = "../api" }
