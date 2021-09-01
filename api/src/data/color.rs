@@ -12,10 +12,11 @@ impl ColorData {
             colors: [
                 back,
                 front,
-                dest
-            ]
+                dest,
+            ],
         }
     }
+
 }
 
 impl Data for ColorData {

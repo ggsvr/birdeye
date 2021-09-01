@@ -23,7 +23,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut cam = videoio::VideoCapture::new(0, videoio::CAP_ANY)?;
 
-    let mut raw_img = true;
+        let mut tol = 0;
+
+        highgui::create_trackbar(
+            tolerance_bar,
+            window,
+            &mut tol,
+            100,
+            None
+        )?;
+
+//        highgui::create_button
 
     loop {
         let mut frame = UMat::new(UMatUsageFlags::USAGE_DEFAULT);
@@ -31,17 +41,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         if frame.size()?.width > 0 {
 
-            let mut tol = 0;
-
             highgui::imshow(window, &frame)?;
-            highgui::create_trackbar(
-                tolerance_bar,
-                window,
-                &mut tol,
-                100,
-                None
-            )?;
-
 
         }
         let key = highgui::poll_key()?;
